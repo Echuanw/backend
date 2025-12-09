@@ -185,3 +185,61 @@ def delete_employee(db: SessionDep, employee_id:str):
         db.commit()                     
         return existing_record
     return None
+
+
+# UserRole
+def get_userrole_by_roleid(db: SessionDep, role_id: str, offset: int, limit : int):
+    return list(db.exec(select(models.UserRole).where(models.UserRole.role_id == role_id).offset(offset).limit(10)).all())
+
+# Role
+def generate_composite_key(key1: str, key2:str):
+    """获取复合主键id"""
+    _key_list = []
+    _key_list.append(key1)
+    _key_list.append(key2)
+    return '|'.join(sorted(_key_list))
+
+def get_role_by_name(db: SessionDep, role_name: str):
+    return db.exec(select(models.Role).where(models.Role.role_name == role_name)).first()
+
+def get_role_by_id(db: SessionDep, role_id: str):
+    return db.exec(select(models.Role).where(models.Role.id == role_id)).first()
+
+def create_role(db: SessionDep, record_in: schemas.RoleIn):
+    """新增 Role, 需要检查是不是有同名的"""
+    existing_record = get_role_by_name(db, record_in.role_name)
+    if existing_record:
+        return None  # 返回 None 以表明岗位已存在
+    db_record = models.Role.model_validate(record_in)
+    update_id_time(db_record, "role")
+    db.add(db_record)
+    db.commit()
+    db.refresh(db_record)
+    return db_record
+
+def get_role(db: SessionDep, offset: int, limit : int):
+    """查询所有 Role"""
+    return list(db.exec(select(models.Role).offset(offset).limit(limit)).all())
+
+def update_role(db: SessionDep, role_id:str, record_in: schemas.RoleIn):
+    """更新 Role,"""
+    existing_record = get_position_by_id(db, role_id)                          # 获取原数据
+    if existing_record:
+        db_record = record_in.model_dump(exclude_unset=True)                         # 新数据转成 Position 并去除未设置的字段
+        for key, value in db_record.items():                                         # 依次更新字段
+            setattr(existing_record, key, value)
+        existing_record.update_at = get_time_now()                                # 设置新数据的更新时间
+        db.commit()                           # 提交到暂存区
+        db.refresh(existing_record)           # 最后才能更新
+        return existing_record
+    return None
+
+def delete_role(db: SessionDep, role_id:str):
+    """更新 Position,"""
+    get_userrole_by_roleid(db, )
+    existing_record = get_role_by_id(db, role_id)                          # 获取原数据
+    if existing_record:
+        db.delete(existing_record) 
+        db.commit()                     
+        return existing_record
+    return None

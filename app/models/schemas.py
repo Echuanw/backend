@@ -85,5 +85,19 @@ class EmployeeUpdate(SQLModel):
     pass
 
 
-class UserCreate(User):
+# Role
+class RoleIn(SQLModel):
+    __tablename__ = "user"
+    role_name: str | None                    #	VARCHAR	角色名称
+    description: str | None                  #	TEXT	角色描述
     pass
+
+class RoleOut(SQLModel):                                       # 指定输出顺序
+    id: str | None = Field(default=None)            
+    role_name: str | None                                       #	VARCHAR	角色名称
+    description: str | None                                     #	TEXT	角色描述
+    create_at: datetime | None = Field(default=None)               # 创建时间
+    update_at: datetime | None = Field(default=None)               # 更新时间
+    pass
+
+# 

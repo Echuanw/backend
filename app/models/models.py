@@ -109,7 +109,7 @@ class Resource(ModelBase, table=True):
     description: str | None                  #	TEXT	资源描述
 
     
-class UserRole(SQLModel, table=True):
+class UserRole(ModelBase, table=True):
     """
     UserRole
     """

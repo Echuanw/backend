@@ -1,18 +1,27 @@
-from fastapi import APIRouter
+import app.models.schemas as schemas
+import app.models.crud as crud
+from app.models.database import SessionDep
+from fastapi import APIRouter, Query, Body, status, HTTPException
+from typing import Annotated
 api_role = APIRouter()
 
 # 员工管理
 
 # 1. 获取所有角色信息
-# HTTP 方法:GET
-# 路径:/role/
-# 描述: 获取所有角色的列表
-@api_role.get('/') 
-async def get_all_role():
+@api_role.get('/', response_model=list[schemas.RoleOut]) 
+async def get_role(
+    session: SessionDep,
+    offset: int = 0,
+    limit: Annotated[int, Query(le=100)] = 100
+):
     """
-    GET /role/    获取所有角色的列表
+    获取所有角色信息
+    HTTP 方法:GET
+    路径:/role/
+    描述: 获取所有角色的列表
     """
-    return {"method": "获取所有角色的列表"}
+    return crud.get_role(session, offset, limit)
+
 
 # 2. 获取某个角色绑定的所有人员
 # HTTP 方法:GET
@@ -43,24 +52,44 @@ async def get_all_permission_by_role():
 # role_name: 角色名称
 # description: 角色描述
 # 描述: 创建一个新的角色
-@api_role.post('/') 
-async def add_role():
+@api_role.post(
+    '/', 
+    response_model=schemas.RoleIn, 
+    status_code=status.HTTP_200_OK
+) 
+async def create_role(
+    session: SessionDep,
+    role: Annotated[schemas.RoleIn, Body(
+            examples = [{
+                "role_name": "role name",
+                "description": "用于管理xxx的角色，有 create update del 的权限",
+            }]
+        )]
+):
     """
     GET /role/    创建一个角色
     """
-    return {"method": "创建一个角色"}
+    db_record = crud.create_role(session, role)
+    if db_record is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role already exists.")
+    return db_record
 
 # 5. 删除一个角色
 # HTTP 方法:DELETE
 # 路径:/role/{role_id}
 # 描述: 删除指定的角色
 @api_role.delete('/{role_id}') 
-async def del_role():
+async def del_role(
+    session: SessionDep,
+    role_id: str     
+):
     """
     GET /role/{role_id}    删除指定的角色
     """
-    return {"method": "删除指定的角色"}
-
+    db_record = crud.delete_role(session, role_id)
+    if db_record is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role not exists.")
+    return db_record
 
 # 6. 为一个角色绑定权限
 # HTTP 方法:POST
@@ -75,7 +104,6 @@ async def add_role():
     """
     return {"method": "为一个角色绑定权限"}
 
-
 # 7. 为一个角色解绑权限
 # HTTP 方法:DELETE
 # 路径:/role/{role_id}/permission
@@ -89,7 +117,7 @@ async def del_role():
     """
     return {"method": "为指定角色解绑权限"}
 
-# 8. 为一个角色绑定人员
+# 8. 为一个角色绑定用户
 # HTTP 方法:POST
 # 路径:/role/{role_id}/user
 # 请求参数:
